@@ -2,52 +2,118 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>主要取引先 円グラフ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主要取引先円グラフ</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+    }
+    #chartContainer {
+      margin-top: 30px;
+    }
+  </style>
 </head>
 <body>
-  <h1>主要取引先の比率（円グラフ）</h1>
-  <canvas id="myChart" width="400" height="400"></canvas>
+  <h1>企業の主要取引先 円グラフ表示</h1>
+
+  <label for="codeInput">証券コードを入力:</label>
+  <input type="text" id="codeInput" placeholder="例: 1381">
+  <button onclick="showChart()">表示</button>
+
+  <div id="chartContainer">
+    <canvas id="myChart"></canvas>
+  </div>
 
   <script>
-    fetch("data.csv")
-      .then(res => res.text())
-      .then(text => {
-        const rows = text.trim().split("\n").map(r => r.split(","));
-        
-        const labels = [];
-        const values = [];
-        
-        // 1行目はヘッダーなのでスキップ
-        let totalRatio = 0;
-        for (let i = 1; i < rows.length; i++) {
-          const company = rows[i][0];
-          const ratio = Number(rows[i][2]); // 比率を使う
-          labels.push(company);
-          values.push(ratio);
-          totalRatio += ratio;
-        }
+    let companies = [];
+    let chartInstance = null;
 
-        // その他を追加（100から既存比率を引いた残り）
-        if (totalRatio < 100) {
-          labels.push("その他");
-          values.push(100 - totalRatio);
-        }
+    // JSONファイル読み込み
+    async function loadData() {
+      try {
+        const response = await fetch('data.json');
+        companies = await response.json();
+      } catch (err) {
+        alert('JSONファイルの読み込みに失敗しました。');
+        console.error(err);
+      }
+    }
 
-        new Chart(document.getElementById("myChart"), {
-          type: "pie",
-          data: {
-            labels: labels,
-            datasets: [{
-              data: values,
-              backgroundColor: [
-                "red", "blue", "green", "orange", "purple", "gray"
-              ]
-            }]
+    // 色を自動生成（Hueを一定間隔で変化させる）
+    function generateColors(n) {
+      const colors = [];
+      for (let i = 0; i < n; i++) {
+        const hue = Math.round((360 / n) * i);
+        colors.push(`hsl(${hue}, 70%, 50%)`);
+      }
+      return colors;
+    }
+
+    async function showChart() {
+      if (companies.length === 0) {
+        await loadData();
+      }
+
+      const code = document.getElementById("codeInput").value.trim();
+      const company = companies.find(c => c.証券コード === code);
+
+      if (!company) {
+        alert("証券コードが見つかりません。");
+        return;
+      }
+
+      if (!company.主要取引先 || company.主要取引先.length === 0) {
+        alert(`${company.企業名}には主要取引先がありません。`);
+        return;
+      }
+
+      const labels = company.主要取引先.map(c => c.取引先名);
+      const dataAmounts = company.主要取引先.map(c => parseFloat(c.金額));
+      const dataPercentages = company.主要取引先.map(c => parseFloat(c.割合));
+      const colors = generateColors(labels.length);
+
+      const data = {
+        labels: labels,
+        datasets: [{
+          label: `${company.企業名}の主要取引先`,
+          data: dataAmounts,
+          backgroundColor: colors,
+          hoverOffset: 10
+        }]
+      };
+
+      const config = {
+        type: 'pie',
+        data: data,
+        options: {
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const idx = context.dataIndex;
+                  return `${context.label}: 金額 ${dataAmounts[idx]}, 割合 ${dataPercentages[idx]}%`;
+                }
+              }
+            }
           }
-        });
-      });
+        }
+      };
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      const ctx = document.getElementById('myChart').getContext('2d');
+      chartInstance = new Chart(ctx, config);
+    }
   </script>
 </body>
-</html>
 </html>
