@@ -9,22 +9,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <style>
         #chartContainer {
-            width: 800px;
-            /* グラフの横幅 */
-            height: 800px;
-            /* グラフの縦幅 */
+            width: 90%;
+            /* 親要素の90%幅に */
+            max-width: 800px;
+            /* 最大幅は800px */
+            height: auto;
+            /* 高さは自動 */
             margin: auto;
-            /* 中央寄せ */
         }
 
         #myChart {
             width: 100% !important;
-            /* 親要素の幅に合わせる */
-            height: 100% !important;
-            /* 親要素の高さに合わせる */
+            height: auto !important;
+            /* 高さも自動に */
         }
     </style>
-    </style>
+
 </head>
 
 <body>
@@ -36,7 +36,6 @@
 
     <div id="chartContainer">
         <canvas id="myChart"></canvas>
-        <div id="noDataMessage"></div>
     </div>
 
 
@@ -45,7 +44,7 @@
         let chart = null; // グラフを保持する変数
 
         // JSONを読み込み
-        fetch("data.json")
+        fetch("result.json")
             .then(response => response.json())
             .then(data => { jsonData = data; })
             .catch(error => console.error("読み込み失敗:", error));
@@ -104,6 +103,9 @@
                         }]
                     },
                     options: {
+
+                        responsive: true,   // レスポンシブ対応
+                        maintainAspectRatio: true, // アスペクト比を維持
                         plugins: {
                             datalabels: {
                                 formatter: (value) => value.toFixed(1) + '%',
