@@ -2,41 +2,52 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>CSVから円グラフ</title>
+  <title>主要取引先 円グラフ</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>CSVデータを円グラフに可視化</h1>
+  <h1>主要取引先の比率（円グラフ）</h1>
   <canvas id="myChart" width="400" height="400"></canvas>
 
   <script>
-    // CSVを読み込む
     fetch("data.csv")
       .then(res => res.text())
       .then(text => {
-        // 行ごとに分割
         const rows = text.trim().split("\n").map(r => r.split(","));
         
-        // 1行目はヘッダー
         const labels = [];
         const values = [];
+        
+        // 1行目はヘッダーなのでスキップ
+        let totalRatio = 0;
         for (let i = 1; i < rows.length; i++) {
-          labels.push(rows[i][0]);         // 名前
-          values.push(Number(rows[i][1])); // 数値
+          const company = rows[i][0];
+          const ratio = Number(rows[i][2]); // 比率を使う
+          labels.push(company);
+          values.push(ratio);
+          totalRatio += ratio;
         }
 
-        // Chart.jsで円グラフを描画
+        // その他を追加（100から既存比率を引いた残り）
+        if (totalRatio < 100) {
+          labels.push("その他");
+          values.push(100 - totalRatio);
+        }
+
         new Chart(document.getElementById("myChart"), {
           type: "pie",
           data: {
             labels: labels,
             datasets: [{
               data: values,
-              backgroundColor: ["red", "blue", "green", "orange", "purple"]
+              backgroundColor: [
+                "red", "blue", "green", "orange", "purple", "gray"
+              ]
             }]
           }
         });
       });
   </script>
 </body>
+</html>
 </html>
