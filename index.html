@@ -8,6 +8,12 @@
   <h1>CSVを読み込む例</h1>
   <pre id="output"></pre>
 
-  
+  <script>
+    fetch("data.csv")               // CSVファイルを読み込む
+      .then(res => res.text())      // テキストとして取得
+      .then(text => {
+        document.getElementById("output").textContent = text; // 画面に表示
+      });
+  </script>
 </body>
 </html>
