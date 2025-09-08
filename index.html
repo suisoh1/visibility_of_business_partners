@@ -1,143 +1,141 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>主要取引先円グラフ</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
-    input, button {
-      padding: 8px;
-      margin: 5px 0;
-    }
-    #chartContainer {
-      margin-top: 30px;
-    }
-    #noDataMessage {
-      margin-top: 20px;
-      color: #555;
-    }
-  </style>
-</head>
-<body>
-  <h1>企業の主要取引先 円グラフ表示</h1>
-
-  <label for="codeInput">証券コードを入力:</label>
-  <input type="text" id="codeInput" placeholder="例: 1381">
-  <button onclick="showChart()">表示</button>
-
-  <div id="chartContainer">
-    <canvas id="myChart"></canvas>
-    <div id="noDataMessage"></div>
-  </div>
-
-  <script>
-    let companies = [];
-    let chartInstance = null;
-
-    // JSONファイル読み込み
-    async function loadData() {
-      try {
-        const response = await fetch('data.json');
-        companies = await response.json();
-      } catch (err) {
-        alert('JSONファイルの読み込みに失敗しました。');
-        console.error(err);
-      }
-    }
-
-    // 色を自動生成（Hueを一定間隔で変化させる）
-    function generateColors(n) {
-      const colors = [];
-      for (let i = 0; i < n; i++) {
-        const hue = Math.round((360 / n) * i);
-        colors.push(`hsl(${hue}, 70%, 50%)`);
-      }
-      return colors;
-    }
-
-    function formatNumber(num) {
-      return num.toLocaleString();
-    }
-
-    async function showChart() {
-      if (companies.length === 0) {
-        await loadData();
-      }
-
-      const code = document.getElementById("codeInput").value.trim();
-      const company = companies.find(c => c.証券コード === code);
-
-      const noDataMessage = document.getElementById("noDataMessage");
-      noDataMessage.textContent = '';
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-
-      if (!company) {
-        noDataMessage.textContent = "証券コードが見つかりません。";
-        return;
-      }
-
-      if (!company.主要取引先 || company.主要取引先.length === 0) {
-        noDataMessage.textContent = `${company.証券コード}：${company.企業名} は主要取引先がありません。`;
-        return;
-      }
-
-      const labels = company.主要取引先.map(c => c.取引先名);
-      const dataAmounts = company.主要取引先.map(c => parseFloat(c.金額));
-      const dataPercentages = company.主要取引先.map(c => parseFloat(c.割合));
-
-      // その他の割合がある場合は追加
-      const totalPercentage = dataPercentages.reduce((a, b) => a + b, 0);
-      const totalAmount = dataAmounts.reduce((a, b) => a + b, 0);
-
-      if (totalPercentage < 100) {
-        labels.push("その他");
-        const otherPercentage = +(100 - totalPercentage).toFixed(1);
-        const otherAmount = totalAmount * (otherPercentage / totalPercentage || 0); // 金額比率で計算
-        dataPercentages.push(otherPercentage);
-        dataAmounts.push(otherAmount);
-      }
-
-      const colors = generateColors(labels.length);
-
-      const data = {
-        labels: labels,
-        datasets: [{
-          label: `${company.企業名}の主要取引先`,
-          data: dataAmounts,
-          backgroundColor: colors,
-          hoverOffset: 10
-        }]
-      };
-
-      const config = {
-        type: 'pie',
-        data: data,
-        options: {
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const idx = context.dataIndex;
-                  return `${context.label}: 金額 ${formatNumber(dataAmounts[idx])}, 割合 ${dataPercentages[idx].toFixed(1)}%`;
-                }
-              }
-            }
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主要取引先可視化ツール</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        #chartContainer {
+            width: 800px;
+            /* グラフの横幅 */
+            height: 800px;
+            /* グラフの縦幅 */
+            margin: auto;
+            /* 中央寄せ */
         }
-      };
 
-      const ctx = document.getElementById('myChart').getContext('2d');
-      chartInstance = new Chart(ctx, config);
-    }
-  </script>
+        #myChart {
+            width: 100% !important;
+            /* 親要素の幅に合わせる */
+            height: 100% !important;
+            /* 親要素の高さに合わせる */
+        }
+    </style>
+    </style>
+</head>
+
+<body>
+    <h1>主要取引先 円グラフ表示</h1>
+    <label for="codeInput">証券コードを入力:</label>
+    <input type="text" id="codeInput" placeholder="例: 1381">
+    <button onclick="searchCompany()">検索</button>
+    <p id="result"></p>
+
+    <div id="chartContainer">
+        <canvas id="myChart"></canvas>
+        <div id="noDataMessage"></div>
+    </div>
+
+
+    <script>
+        let jsonData = [];
+        let chart = null; // グラフを保持する変数
+
+        // JSONを読み込み
+        fetch("result.json")
+            .then(response => response.json())
+            .then(data => { jsonData = data; })
+            .catch(error => console.error("読み込み失敗:", error));
+
+
+        function searchCompany() {
+            const code = document.getElementById("codeInput").value.trim();
+            document.getElementById("codeInput").value = "";
+            const result = jsonData.find(item => item["証券コード"] === code);
+            if (chart) chart.destroy();
+
+
+            if (result) {
+                let html = `企業名: ${result["企業名"]} <br> 業種: ${result["業種"]}`;
+                document.getElementById("result").textContent =
+                    html;
+
+                if (result["主要取引先"].length > 0) {
+                    html += "<h3>主要取引先</h3><ul>";
+                    result["主要取引先"].forEach(client => {
+                        html += `<li>${client["取引先名"]} - 金額: ${client["金額"]}, 割合: ${client["割合"]}%</li>`;
+                    });
+                    html += "</ul>";
+                } else {
+                    html += "<p>主要取引先は登録されていません。</p>";
+                }
+                document.getElementById("result").innerHTML = html;
+
+                const labels = result["主要取引先"].map(c => c["取引先名"]);
+                const data = result["主要取引先"].map(c => parseFloat(c["割合"]));
+                const ctx = document.getElementById("myChart").getContext("2d");
+                // 合計チェック
+                const total = data.reduce((a, b) => a + b, 0);
+                if (total < 100) {
+                    labels.push("その他");
+                    data.push(100 - total);
+                }
+                let baseColors = [
+                    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+                    "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#FF595E"
+                ];
+
+                // labels 配列に合わせて色を決定
+                const backgroundColors = labels.map((l, i) => {
+                    if (l === "その他") return "#C9CBCF"; // 「その他」は灰色
+                    return baseColors[i % baseColors.length]; // 足りなくなったら先頭からループ
+                });
+
+                chart = new Chart(ctx, {
+                    type: "pie",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            datalabels: {
+                                formatter: (value) => value.toFixed(1) + '%',
+                                color: "#000",
+                                font: {
+                                    weight: "bold",
+                                    size: 12
+                                }
+                            },
+                            legend: {
+                                position: "right"
+                            }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+
+
+            } else {
+                document.getElementById("result").textContent =
+                    `${code}: 該当する証券コードは見つかりませんでした。`;
+            }
+        }
+
+
+        // Enterキーでも検索できるようにする
+        document.getElementById("codeInput").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                searchCompany();
+            }
+        });
+    </script>
 </body>
+
 </html>
