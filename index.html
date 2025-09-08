@@ -19,6 +19,10 @@
     #chartContainer {
       margin-top: 30px;
     }
+    #noDataMessage {
+      margin-top: 20px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -30,6 +34,7 @@
 
   <div id="chartContainer">
     <canvas id="myChart"></canvas>
+    <div id="noDataMessage"></div>
   </div>
 
   <script>
@@ -57,6 +62,10 @@
       return colors;
     }
 
+    function formatNumber(num) {
+      return num.toLocaleString();
+    }
+
     async function showChart() {
       if (companies.length === 0) {
         await loadData();
@@ -65,19 +74,38 @@
       const code = document.getElementById("codeInput").value.trim();
       const company = companies.find(c => c.証券コード === code);
 
+      const noDataMessage = document.getElementById("noDataMessage");
+      noDataMessage.textContent = '';
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
       if (!company) {
-        alert("証券コードが見つかりません。");
+        noDataMessage.textContent = "証券コードが見つかりません。";
         return;
       }
 
       if (!company.主要取引先 || company.主要取引先.length === 0) {
-        alert(`${company.企業名}には主要取引先がありません。`);
+        noDataMessage.textContent = `${company.証券コード}：${company.企業名} は主要取引先がありません。`;
         return;
       }
 
       const labels = company.主要取引先.map(c => c.取引先名);
       const dataAmounts = company.主要取引先.map(c => parseFloat(c.金額));
       const dataPercentages = company.主要取引先.map(c => parseFloat(c.割合));
+
+      // その他の割合がある場合は追加
+      const totalPercentage = dataPercentages.reduce((a, b) => a + b, 0);
+      const totalAmount = dataAmounts.reduce((a, b) => a + b, 0);
+
+      if (totalPercentage < 100) {
+        labels.push("その他");
+        const otherPercentage = +(100 - totalPercentage).toFixed(1);
+        const otherAmount = totalAmount * (otherPercentage / totalPercentage || 0); // 金額比率で計算
+        dataPercentages.push(otherPercentage);
+        dataAmounts.push(otherAmount);
+      }
+
       const colors = generateColors(labels.length);
 
       const data = {
@@ -99,17 +127,13 @@
               callbacks: {
                 label: function(context) {
                   const idx = context.dataIndex;
-                  return `${context.label}: 金額 ${dataAmounts[idx]}, 割合 ${dataPercentages[idx]}%`;
+                  return `${context.label}: 金額 ${formatNumber(dataAmounts[idx])}, 割合 ${dataPercentages[idx].toFixed(1)}%`;
                 }
               }
             }
           }
         }
       };
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
 
       const ctx = document.getElementById('myChart').getContext('2d');
       chartInstance = new Chart(ctx, config);
