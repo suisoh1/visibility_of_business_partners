@@ -114,50 +114,63 @@
 
             document.getElementById("result").innerHTML = html;
 
-            // グラフ描画
-            if (result["主要取引先"].length > 0) {
-                const labels = result["主要取引先"].map(c => c["取引先名"]);
-                const data = result["主要取引先"].map(c => parseFloat(c["割合"]));
-                const ctx = document.getElementById("myChart").getContext("2d");
+            // 主要取引先から割合が "-" のものを除外
+            let validClients = result["主要取引先"].filter(c => {
+                return c["割合"] !== "-" && c["割合"] !== "－" && !isNaN(parseFloat(c["割合"]));
+            });
+
+            let labels = validClients.map(c => c["取引先名"]);
+            let data = validClients.map(c => parseFloat(c["割合"]));
+            const ctx = document.getElementById("myChart").getContext("2d");
+
+            // --- 主要取引先が空の場合は「その他100%」 ---
+            if (data.length === 0) {
+                labels = ["その他"];
+                data = [100];
+            } else {
+                // 合計チェック
                 const total = data.reduce((a, b) => a + b, 0);
                 if (total < 100) {
                     labels.push("その他");
                     data.push(100 - total);
                 }
-                let baseColors = [
-                    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
-                    "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#FF595E"
-                ];
-                const backgroundColors = labels.map((l, i) => {
-                    if (l === "その他") return "#C9CBCF";
-                    return baseColors[i % baseColors.length];
-                });
-
-                chart = new Chart(ctx, {
-                    type: "pie",
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: backgroundColors
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            datalabels: {
-                                formatter: (value) => value.toFixed(1) + '%',
-                                color: "#000",
-                                font: { weight: "bold", size: 12 }
-                            },
-                            legend: { position: "right" }
-                        }
-                    },
-                    plugins: [ChartDataLabels]
-                });
             }
+
+
+            let baseColors = [
+                "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+                "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#FF595E"
+            ];
+            const backgroundColors = labels.map((l, i) => {
+                if (l === "その他") return "#C9CBCF";
+                return baseColors[i % baseColors.length];
+            });
+
+            chart = new Chart(ctx, {
+                type: "pie",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        datalabels: {
+                            formatter: (value) => value.toFixed(1) + '%',
+                            color: "#000",
+                            font: { weight: "bold", size: 12 }
+                        },
+                        legend: { position: "right" }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
         }
+
 
         // Enterキーでも検索できるようにする
         document.getElementById("codeInput").addEventListener("keydown", function (event) {
