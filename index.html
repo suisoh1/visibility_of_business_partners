@@ -65,7 +65,7 @@
                 if (result["主要取引先"].length > 0) {
                     html += "<h3>主要取引先</h3><ul>";
                     result["主要取引先"].forEach(client => {
-                        html += `<li>${client["取引先名"]} - 金額: ${client["金額"]}, 割合: ${client["割合"]}%</li>`;
+                        html += `<li>${client["取引先名"]} - 金額: ${client["金額"]}、 割合: ${client["割合"]}%</li>`;
                     });
                     html += "</ul>";
                 } else {
