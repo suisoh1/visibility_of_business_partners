@@ -44,7 +44,7 @@
         let chart = null; // グラフを保持する変数
 
         // JSONを読み込み
-        fetch("result.json")
+        fetch("data.json")
             .then(response => response.json())
             .then(data => { jsonData = data; })
             .catch(error => console.error("読み込み失敗:", error));
