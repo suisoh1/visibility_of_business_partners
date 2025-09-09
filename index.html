@@ -60,8 +60,9 @@
 
             if (result) {
                 let html = `証券コード: ${result["証券コード"]} <br> 企業名: ${result["企業名"]} <br> 業種: ${result["業種"]}`;
-                document.getElementById("result").textContent =
-                    html;
+                document.getElementById("result").textContent = html;
+                const map_url = "https://suisoh1.github.io/company_address/?code" + code
+                html += `<a href="${map_url}" target="_blank">所在地の場所を検索</a>`;
 
                 if (result["主要取引先"].length > 0) {
                     html += "<h3>主要取引先</h3><ul>";
@@ -72,6 +73,7 @@
                 } else {
                     html += "<p>主要取引先は登録されていません。</p>";
                 }
+
                 document.getElementById("result").innerHTML = html;
 
                 const labels = result["主要取引先"].map(c => c["取引先名"]);
