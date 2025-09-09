@@ -23,22 +23,17 @@
             height: auto !important;
             /* 高さも自動に */
         }
-        #text {
-          text-align: center;
-        }
 
     </style>
 
 </head>
 
 <body>
-    <div id="text">
-        <h1>主要取引先 確認ツール</h1>
-        <label for="codeInput">証券コードを入力:</label>
-        <input type="text" id="codeInput" placeholder="例: 1381">
-        <button onclick="searchCompany()">検索</button>
-        <p id="result"></p>
-    </div>
+    <h1>主要取引先 確認ツール</h1>
+    <label for="codeInput">証券コードを入力:</label>
+    <input type="text" id="codeInput" placeholder="例: 1381">
+    <button onclick="searchCompany()">検索</button>
+    <p id="result"></p>
 
     <div id="chartContainer">
         <canvas id="myChart"></canvas>
