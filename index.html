@@ -41,38 +41,26 @@
 
     <script>
         let jsonData = [];
-        let chart = null;
+        let chart = null; // グラフを保持する変数
 
         // JSONを読み込み
         fetch("result.json")
             .then(response => response.json())
-            .then(data => {
-                jsonData = data;
-                // ページ読み込み時にクエリから読み取り
-                const params = new URLSearchParams(window.location.search);
-                const code = params.get("code");
-                if (code) {
-                    document.getElementById("codeInput").value = code;
-                    searchCompany(code);
-                }
-            })
+            .then(data => { jsonData = data; })
             .catch(error => console.error("読み込み失敗:", error));
 
-        function searchCompany(codeFromParam = null) {
-            const code = codeFromParam || document.getElementById("codeInput").value.trim();
+
+        function searchCompany() {
+            const code = document.getElementById("codeInput").value.trim();
             document.getElementById("codeInput").value = "";
-
-            // URLを ?code=XXX に更新（履歴に残す）
-            if (!codeFromParam) {
-                const newUrl = `${window.location.pathname}?code=${encodeURIComponent(code)}`;
-                history.pushState(null, "", newUrl);
-            }
-
             const result = jsonData.find(item => item["証券コード"] === code);
             if (chart) chart.destroy();
 
+
             if (result) {
                 let html = `企業名: ${result["企業名"]} <br> 業種: ${result["業種"]}`;
+                document.getElementById("result").textContent =
+                    html;
 
                 if (result["主要取引先"].length > 0) {
                     html += "<h3>主要取引先</h3><ul>";
@@ -87,20 +75,24 @@
 
                 const labels = result["主要取引先"].map(c => c["取引先名"]);
                 const data = result["主要取引先"].map(c => parseFloat(c["割合"]));
-
+                const ctx = document.getElementById("myChart").getContext("2d");
+                // 合計チェック
                 const total = data.reduce((a, b) => a + b, 0);
                 if (total < 100) {
                     labels.push("その他");
                     data.push(100 - total);
                 }
-
                 let baseColors = [
                     "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
                     "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#FF595E"
                 ];
-                const backgroundColors = labels.map((l, i) => l === "その他" ? "#C9CBCF" : baseColors[i % baseColors.length]);
 
-                const ctx = document.getElementById("myChart").getContext("2d");
+                // labels 配列に合わせて色を決定
+                const backgroundColors = labels.map((l, i) => {
+                    if (l === "その他") return "#C9CBCF"; // 「その他」は灰色
+                    return baseColors[i % baseColors.length]; // 足りなくなったら先頭からループ
+                });
+
                 chart = new Chart(ctx, {
                     type: "pie",
                     data: {
@@ -111,24 +103,33 @@
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
+
+                        responsive: true,   // レスポンシブ対応
+                        maintainAspectRatio: true, // アスペクト比を維持
                         plugins: {
                             datalabels: {
                                 formatter: (value) => value.toFixed(1) + '%',
                                 color: "#000",
-                                font: { weight: "bold", size: 12 }
+                                font: {
+                                    weight: "bold",
+                                    size: 12
+                                }
                             },
-                            legend: { position: "right" }
+                            legend: {
+                                position: "right"
+                            }
                         }
                     },
                     plugins: [ChartDataLabels]
                 });
+
+
             } else {
                 document.getElementById("result").textContent =
                     `${code}: 該当する証券コードは見つかりませんでした。`;
             }
         }
+
 
         // Enterキーでも検索できるようにする
         document.getElementById("codeInput").addEventListener("keydown", function (event) {
@@ -137,7 +138,6 @@
             }
         });
     </script>
-
 </body>
 
 </html>
