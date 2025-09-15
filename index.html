@@ -10,21 +10,16 @@
     <style>
         #chartContainer {
             width: 90%;
-            /* 親要素の90%幅に */
             max-width: 800px;
-            /* 最大幅は800px */
             height: auto;
-            /* 高さは自動 */
             margin: auto;
         }
 
         #myChart {
             width: 100% !important;
             height: auto !important;
-            /* 高さも自動に */
         }
     </style>
-
 </head>
 
 <body>
@@ -38,7 +33,6 @@
         <canvas id="myChart"></canvas>
     </div>
 
-
     <script>
         let jsonData = [];
         let chart = null; // グラフを保持する変数
@@ -46,13 +40,32 @@
         // JSONを読み込み
         fetch("data.json")
             .then(response => response.json())
-            .then(data => { jsonData = data; })
+            .then(data => {
+                jsonData = data;
+                checkUrlParam(); // ページ読み込み時に ?code= をチェック
+            })
             .catch(error => console.error("読み込み失敗:", error));
+
+        // --- URLパラメータを確認して検索 ---
+        function checkUrlParam() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get("code");
+            if (code) {
+                document.getElementById("codeInput").value = code;
+                searchCompany();
+            }
+        }
 
         function searchCompany() {
             const keyword = document.getElementById("codeInput").value.trim();
             document.getElementById("codeInput").value = "";
             if (chart) chart.destroy();
+
+            // 検索結果をURLに反映
+            if (keyword) {
+                const newUrl = `${window.location.pathname}?code=${encodeURIComponent(keyword)}`;
+                history.pushState(null, "", newUrl);
+            }
 
             // 証券コード完全一致を優先
             let exactMatch = jsonData.find(item => item["証券コード"] === keyword);
@@ -136,7 +149,6 @@
                 }
             }
 
-
             let baseColors = [
                 "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
                 "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#FF595E"
@@ -171,7 +183,6 @@
             });
         }
 
-
         // Enterキーでも検索できるようにする
         document.getElementById("codeInput").addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
@@ -179,7 +190,5 @@
             }
         });
     </script>
-
 </body>
-
 </html>
